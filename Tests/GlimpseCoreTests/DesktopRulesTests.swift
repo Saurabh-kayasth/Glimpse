@@ -39,9 +39,29 @@ struct WindowRuleTests {
 
   @Test func widgetInFront() { #expect(!showing(CGPoint(x: 50, y: 100))) }
 
-  @Test func menuBarItemInFront() {
+  @Test("menu-bar items are system overlays: the window rule skips them (the detector skips the menu bar anyway)")
+  func menuBarItemSkipped() {
     let item = WindowInfo(owner: "Control Centre", pid: 457, layer: 25, bounds: CGRect(x: 1090, y: 0, width: 36, height: 33))
-    #expect(!showing(CGPoint(x: 1100, y: 10), [item] + stack))
+    #expect(showing(CGPoint(x: 1100, y: 10), [item] + stack))
+  }
+
+  @Test("the Screenshot tool's full-screen overlay (⇧⌘5 open or recording) doesn't hide the desktop (F1)")
+  func screenshotOverlay() {
+    let shot = WindowInfo(owner: "Screenshot", pid: 96793, layer: 24, bounds: CGRect(x: 0, y: 0, width: 1470, height: 956))
+    #expect(showing(CGPoint(x: 1400, y: 300), [shot] + stack))
+  }
+
+  @Test("an invisible window (alpha 0) doesn't count")
+  func invisibleWindow() {
+    let ghost = WindowInfo(owner: "SomeApp", pid: 2000, layer: 0, bounds: CGRect(x: 0, y: 0, width: 1470, height: 956), alpha: 0)
+    #expect(showing(CGPoint(x: 1400, y: 300), [stack[0], ghost] + stack.dropFirst()))
+  }
+
+  @Test("a high overlay over a Finder window still finds the Finder window")
+  func overlayOverFinderWindow() {
+    let shot = WindowInfo(owner: "Screenshot", pid: 96793, layer: 24, bounds: CGRect(x: 0, y: 0, width: 1470, height: 956))
+    let window = WindowInfo(owner: "Finder", pid: finder, layer: 0, bounds: CGRect(x: 275, y: 142, width: 920, height: 436))
+    #expect(DesktopRules.surface([shot, stack[0], window] + stack.dropFirst(), at: CGPoint(x: 700, y: 400), ownPID: own, finderPID: finder) == .finderWindow)
   }
 
   @Test func appWindowInFront() {

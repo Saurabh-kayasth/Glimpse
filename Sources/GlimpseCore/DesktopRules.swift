@@ -10,9 +10,11 @@ public struct WindowInfo: Sendable {
   public let pid: pid_t
   public let layer: Int
   public let bounds: CGRect  // Quartz: origin top-left
+  /// 0 = fully transparent (invisible).
+  public let alpha: Double
 
-  public init(owner: String, pid: pid_t, layer: Int, bounds: CGRect) {
-    self.owner = owner; self.pid = pid; self.layer = layer; self.bounds = bounds
+  public init(owner: String, pid: pid_t, layer: Int, bounds: CGRect, alpha: Double = 1) {
+    self.owner = owner; self.pid = pid; self.layer = layer; self.bounds = bounds; self.alpha = alpha
   }
 }
 
@@ -62,13 +64,19 @@ public enum DesktopRules {
     case other(String)
   }
 
-  /// 02 step 3, as corrected by the P0 run: front to back, skip our own windows, Window Server's (menu bar, the top
-  /// 81-point strip) and the Dock's full-screen layer-20 window; the first other window decides. Windows are expected
-  /// front to back, as `CGWindowListCopyWindowInfo` returns them.
+  /// 02 step 3: front to back, skip our own windows, Window Server's (menu bar, the top 81-point strip), every
+  /// **system overlay at the Dock's layer (20) or above**, and fully transparent windows; the first other window
+  /// decides. Windows are expected front to back, as `CGWindowListCopyWindowInfo` returns them.
+  ///
+  /// Overlays at layer ≥ 20 are see-through system UI: the Dock's full-screen window (found in P0), menu-bar items,
+  /// and the Screenshot tool's full-screen window, which stays up while ⇧⌘5's toolbar is open or a recording runs
+  /// (found 2026-11-24: it made every check fail, F1). Skipping them is safe because the system-wide Accessibility
+  /// question decides next: it sees through them (checked with `--hit-test` while the Screenshot overlay was up), and
+  /// when an overlay really is in the way (a Dock tile, Spotlight), it answers with that app instead of Finder.
   public static func surface(_ windows: [WindowInfo], at p: CGPoint, ownPID: pid_t, finderPID: pid_t) -> Surface {
     for w in windows where w.bounds.contains(p) {
       if w.pid == ownPID || w.owner == "Window Server" { continue }
-      if w.owner == "Dock" && w.layer == dockLevel { continue }
+      if w.layer >= dockLevel || w.alpha == 0 { continue }
       if w.pid == finderPID { return w.layer < 0 ? .desktop : .finderWindow }
       return .other("\(w.owner) layer \(w.layer)")
     }

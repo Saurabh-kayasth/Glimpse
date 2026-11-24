@@ -5,7 +5,7 @@
 
 Reported on 2026-11-24: "sometimes nothing happens at all on hover". The log had only successful hovers (372–492 ms,
 no errors, no "Finder busy"), so the failures were silent. Reading the detector found two weak spots in **when** it
-asks Finder, not in what it asks.
+asks Finder; detailed logging then showed a third, in the window check.
 
 ## The two causes
 
@@ -14,7 +14,29 @@ asks Finder, not in what it asks.
 | **Resting meant not moving even a fraction of a point** | `p != lastPoint`, an exact comparison, restarted the 0.35 s clock | A finger lying on the trackpad nudges the cursor by fractions of a point, so the clock kept restarting and the check might never run |
 | **One check per resting spot, never retried** | `checkedThisRest` was set once | If that check said "nothing", for example because Show Desktop's animation was still sliding windows away when the cursor was already over an icon, or Finder was busy, nothing happened until you moved the cursor |
 
-## The fix
+## Third cause, found with detailed logging on (11:52 UTC)
+
+Right after the fix above, you reported "still not working at all". The log answered at once: **every** check, at
+every point, said `desktop not showing (Screenshot layer 24)`. macOS's Screenshot tool (`screencaptureui`, running for
+nearly 2 hours) had a **full-screen, see-through window at layer 24**, which it keeps up while the ⇧⌘5 toolbar is open
+or a screen recording runs. You can click through it, but the window check took it for a window covering the
+desktop, the same trap as the Dock's full-screen window in [P0](P0.1-ax-probe.md#found-while-building-the-dock-covers-the-whole-screen).
+
+**Fix:** the window check now skips every window at the Dock's layer (20) or above, which are all system overlays (Dock,
+menu bar, status items, Screenshot, banners), and fully transparent windows. That's safe because the system-wide
+Accessibility question decides next, and it sees through them. Checked with a new developer option, `--hit-test x y`,
+while the overlay was up:
+
+| Point | Accessibility answered | Full check, before → after |
+|---|---|---|
+| (700, 400), over VS Code | `Code AXGroup`, not Screenshot | `Screenshot layer 24` → `Code layer 0` (right: VS Code is in front) |
+| (1404, 520), the icon column | `Code AXGroup` | `Screenshot layer 24` → `Code layer 0` (VS Code covered the icons) |
+| (300, 940), open desktop | `Finder AXGroup` | `Screenshot layer 24` → `empty desktop` (reached Finder's desktop) |
+
+If an overlay really is in the way (a Dock tile, Spotlight), Accessibility answers with that app, and nothing opens,
+as before.
+
+## The fix (causes 1 and 2)
 
 [RestTracker](../../Sources/GlimpseCore/RestTracker.swift) in GlimpseCore, a small tested rule fed every 50 ms:
 
@@ -41,7 +63,8 @@ swift test
 | Nothing found → checks at 0.35, 0.95, 1.55, 2.15 s, then stops | ✅ |
 | Show Desktop: first check too early, second finds the icon → stops at 0.95 s | ✅ |
 | New spot → starts over | ✅ |
-| All tests | ✅ 58 tests in 12 suites; clean build; installed, still granted |
+| Screenshot overlay (layer 24), invisible window (alpha 0), overlay over a Finder window | ✅ 3 new window-rule tests; menu-bar items now skipped by the rule as well |
+| All tests | ✅ 61 tests in 12 suites; clean build; installed, still granted |
 | **You:** use it as usual; any "nothing happens" left? | ❓ Detailed logging is on (`verboseHoverLog`), so the log now says why for every check |
 
 **Worth knowing:** a 1 ms slack absorbs timer jitter and floating-point rounding, so "0.6 s later" isn't missed by a

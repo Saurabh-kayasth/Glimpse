@@ -77,7 +77,8 @@ enum DesktopHitTest {
       guard let bd = w[kCGWindowBounds as String], let b = CGRect(dictionaryRepresentation: bd as! CFDictionary) else { return nil }
       return WindowInfo(owner: w[kCGWindowOwnerName as String] as? String ?? "?",
                         pid: pid_t(w[kCGWindowOwnerPID as String] as? Int ?? -1),
-                        layer: w[kCGWindowLayer as String] as? Int ?? 0, bounds: b)
+                        layer: w[kCGWindowLayer as String] as? Int ?? 0, bounds: b,
+                        alpha: w[kCGWindowAlpha as String] as? Double ?? 1)
     }
   }
 
@@ -96,6 +97,19 @@ enum DesktopHitTest {
   }
 
   /// Details only for Finder's elements (safety rule 2): for anything else, just the role.
+  /// Developer option `--hit-test <x> <y>` (Quartz): what the system-wide question returns at that point, and the
+  /// windows there. Roles and app names only. Used to check which overlays Accessibility sees through.
+  static func debugHit(_ p: CGPoint) -> String {
+    let wins = windows().filter { $0.bounds.contains(p) }.prefix(6).map { "\($0.owner)@\($0.layer)" }.joined(separator: ", ")
+    var hit: AXUIElement?
+    let err = AXUIElementCopyElementAtPosition(systemWide, Float(p.x), Float(p.y), &hit)
+    guard err == .success, let el = hit else { return "hit-test (\(Int(p.x)), \(Int(p.y))): AX error \(err.rawValue); windows: \(wins)" }
+    var pid: pid_t = -1
+    AXUIElementGetPid(el, &pid)
+    let app = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "?"
+    return "hit-test (\(Int(p.x)), \(Int(p.y))): \(app) \(attr(el, kAXRoleAttribute) as? String ?? "?"); windows front to back: \(wins)"
+  }
+
   /// For the developer shape dump (FinderShapeDump.swift): the same element reading as a hover uses.
   static func elementInfo(_ el: AXUIElement, finder: pid_t) -> ElementInfo { info(el, finder: finder) }
 

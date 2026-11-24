@@ -16,6 +16,7 @@
 // Add `--simulate-click <row>` to then do what a click on that row does (0 = first row), or `--snapshot <png>` to save
 // the panel as an image 2 s later (after thumbnails have arrived).
 import AppKit
+import GlimpseCore
 import ServiceManagement
 
 @MainActor
@@ -72,6 +73,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     simulateHoverIfAsked()
+    if let i = CommandLine.arguments.firstIndex(of: "--hit-test"), i + 2 < CommandLine.arguments.count,
+       let x = Double(CommandLine.arguments[i + 1]), let y = Double(CommandLine.arguments[i + 2]), accessibilityGranted {
+      Log.write(DesktopHitTest.debugHit(CGPoint(x: x, y: y)))
+      let screen = ScreenList.screen(at: CGPoint(x: x, y: ScreenList.mainHeight - y))
+      let frame = screen.map { ScreenMath.toQuartz($0.frame, mainHeight: ScreenList.mainHeight) } ?? .zero
+      Log.write("full check at (\(Int(x)), \(Int(y))): \(DesktopHitTest.check(CGPoint(x: x, y: y), screen: frame))")
+    }
     if let i = CommandLine.arguments.firstIndex(of: "--dump-finder-shapes"), i + 1 < CommandLine.arguments.count,
        accessibilityGranted {
       DesktopHitTest.dumpFinderShapes(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))

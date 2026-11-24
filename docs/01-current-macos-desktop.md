@@ -62,6 +62,7 @@ version of the script only printed layers below 0, so it missed these):
 |---|---|---|---|
 | Control Centre | 25 | 7 small boxes in the menu bar's right end | menu-bar status items |
 | Window Server | 24 | 0, 0, 1470 × 33 | the menu bar (window name `Menubar`) |
+| Screenshot (`screencaptureui`) | 24 | 0, 0, 1470 × 956 | **only while ⇧⌘5's toolbar is open or a screen recording runs**: another see-through full-screen window (seen 2026-11-24; made every check fail until [F1](rollout/F1-hover-reliability.md)) |
 | **Dock** | **20** | **0, 0, 1470 × 956** | a **full-screen Dock window in front of every app window**, there in every check. Most likely the see-through window the Dock draws itself in. |
 
 - **The Dock window covers the whole screen.** A rule that says "the frontmost window here must be Finder's" sees the
