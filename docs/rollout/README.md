@@ -20,6 +20,7 @@ One file per step, written **when the step is built**: what changed, why, and ho
 | [P5.2](../03-rollout-plan.md#p52-list-and-column-views) | P5 | List and column views | ⏭ skipped 2026-11-24 (moved to Later) |
 | [P6.1](../03-rollout-plan.md#p61-thumbnails) | P6 | Thumbnails in the rows | ✅ 2026-11-24 ([step doc](P6.1-thumbnails.md)) |
 | [P7.1](../03-rollout-plan.md#p71-icon-about-window-readme) | P7 | Icon, About window, README | ✅ 2026-11-24 ([step doc](P7.1-icon-about-readme.md)) |
+| [F1](F1-hover-reliability.md) | fix | Sometimes nothing happens on hover | ✅ 2026-11-24, your check pending |
 
 Since [P3.1](P3.1-launch-at-login.md) the app is installed at `~/Applications/Glimpse.app` by `./build.sh`; older step
 docs mention `build/Glimpse.app`, where it was built before that.

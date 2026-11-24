@@ -20,9 +20,8 @@ final class HoverDetector {
   var verbose = UserDefaults.standard.bool(forKey: "verboseHoverLog")
 
   private var timer: Timer?
-  private var lastPoint = CGPoint(x: -1, y: -1)
-  private var restingSince = Date()
-  private var checkedThisRest = false
+  /// When to check: resting with a little wobble allowed, retried if nothing was found (GlimpseCore's RestTracker).
+  private var rest = RestTracker(rest: HoverDetector.rest)
   private var lastFolder: URL?
   private var unrecognisedLogged = 0
   private var verboseLogged = 0
@@ -47,21 +46,19 @@ final class HoverDetector {
 
   private func tickNow() {
     let p = NSEvent.mouseLocation  // Cocoa: origin bottom-left
-    if p != lastPoint {
-      lastPoint = p
-      restingSince = Date()
-      checkedThisRest = false
+    let now = Date()
+    guard rest.shouldCheck(at: p, now: now) else { return }
+
+    // Any screen (P4.1; D1 lifted): the one under the cursor. Nowhere to look → no retries at this spot.
+    guard let screen = ScreenList.screen(at: p),
+          // Skip that screen's menu bar: no icons there, and with Finder in front its menu items would be logged as
+          // unrecognised.
+          !ScreenMath.isInMenuBar(p, of: screen),
+          shouldCheck?(p) ?? true
+    else {
+      rest.checked(found: true, now: now)
       return
     }
-    guard !checkedThisRest, Date().timeIntervalSince(restingSince) >= Self.rest else { return }
-    checkedThisRest = true
-
-    // Any screen (P4.1; D1 lifted): the one under the cursor.
-    guard let screen = ScreenList.screen(at: p) else { return }
-    // Skip that screen's menu bar: no icons there, and with Finder in front its menu items would be logged as
-    // unrecognised.
-    guard !ScreenMath.isInMenuBar(p, of: screen) else { return }
-    guard shouldCheck?(p) ?? true else { return }
     let mainHeight = ScreenList.mainHeight
     let q = ScreenMath.toQuartz(p, mainHeight: mainHeight)  // as the window list and Accessibility use
 
@@ -69,6 +66,12 @@ final class HoverDetector {
     let outcome = DesktopHitTest.check(q, screen: ScreenMath.toQuartz(screen.frame, mainHeight: mainHeight))
     let ms = String(format: "%.1f", Date().timeIntervalSince(started) * 1000)
     report(outcome, at: q, on: screen.name, ms: ms)
+    // Retry only when nothing was found: a window still sliding away, Finder busy. A folder, a file or an element we
+    // can't name won't change by asking again.
+    switch outcome {
+    case .nothing: rest.checked(found: false, now: now)
+    case .folder, .notAFolder, .unrecognised: rest.checked(found: true, now: now)
+    }
   }
 
   private func report(_ outcome: HoverOutcome, at q: CGPoint, on screen: String, ms: String) {
@@ -81,7 +84,7 @@ final class HoverDetector {
         verboseLine("same folder \(url.lastPathComponent) at \(at), \(ms) ms")
       }
       lastFolder = url
-      onHover?(url, frame, restingSince)
+      onHover?(url, frame, rest.restingSince)
     case .notAFolder(let url):
       lastFolder = nil
       if verbose { verboseLine("not a folder: \(url.lastPathComponent) at \(at), \(ms) ms") }
