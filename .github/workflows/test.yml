@@ -1,0 +1,19 @@
+# Builds Glimpse and runs its tests on every push and pull request.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-26   # Xcode 26 / Swift 6.2+, the toolchain Glimpse is built and tested with
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Build (release)
+        run: swift build -c release
+      - name: Test
+        run: swift test

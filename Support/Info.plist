@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>local.glimpse.app</string>
+	<key>CFBundleName</key>
+	<string>Glimpse</string>
+	<key>CFBundleDisplayName</key>
+	<string>Glimpse</string>
+	<key>CFBundleExecutable</key>
+	<string>Glimpse</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Rest the cursor on a folder to see what's inside. MIT license, © 2026 Glimpse contributors.</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Glimpse lists what is inside a folder in your Documents when you rest the cursor on it in a Finder window. It never changes your files.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Glimpse lists what is inside a folder in your Downloads when you rest the cursor on it in a Finder window. It never changes your files.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Glimpse lists what is inside a folder on an external drive when you rest the cursor on it in a Finder window. It never changes your files.</string>
+	<key>NSNetworkVolumesUsageDescription</key>
+	<string>Glimpse lists what is inside a folder on a network drive when you rest the cursor on it in a Finder window. It never changes your files.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Glimpse lists what is inside a desktop folder when you rest the cursor on it. It never changes your files.</string>
+</dict>
+</plist>
